@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -26,7 +27,10 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('Project5SonarQube') {
-                    sh 'mvn sonar:sonar -Dsonar.projectKey=$SONAR_PROJECT_KEY'
+                    sh '''
+                        mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar \
+                            -Dsonar.projectKey=$SONAR_PROJECT_KEY
+                    '''
                 }
             }
         }
@@ -36,9 +40,12 @@ pipeline {
                 timeout(time: 5, unit: 'MINUTES') {
                     script {
                         def qg = waitForQualityGate()
+
                         if (qg.status != 'OK') {
                             error "SonarQube Quality Gate failed: ${qg.status}"
                         }
+
+                        echo "SonarQube Quality Gate passed: ${qg.status}"
                     }
                 }
             }
@@ -46,6 +53,14 @@ pipeline {
     }
 
     post {
+        success {
+            echo 'SUCCESS: Build, tests, SonarQube analysis, and Quality Gate passed.'
+        }
+
+        failure {
+            echo 'FAILURE: Check the failed pipeline stage and console output.'
+        }
+
         always {
             echo 'Project 5 pipeline finished.'
         }
